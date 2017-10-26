@@ -91,7 +91,7 @@ class Payment
     protected $algorithm;
 
     /**
-     * @var \DateTime Expected delivery date (N 8) (Ymd)
+     * @var \DateTimeInterface Expected delivery date (N 8) (Ymd)
      */
     protected $deliveryDate;
     /**
@@ -157,10 +157,10 @@ class Payment
      * @param $amount
      * @param $reference
      * @param $message
-     * @param \DateTime $deliveryDate
+     * @param \DateTimeInterface $deliveryDate
      * @return $this
      */
-    public function setOrderData($stamp, $amount, $reference, $message, \DateTime $deliveryDate)
+    public function setOrderData($stamp, $amount, $reference, $message, \DateTimeInterface $deliveryDate)
     {
         $this->setStamp($stamp);
         $this->setAmount($amount);
@@ -472,10 +472,10 @@ class Payment
     }
 
     /**
-     * @param \DateTime $deliveryDate
+     * @param \DateTimeInterface $deliveryDate
      * @return $this
      */
-    public function setDeliveryDate(\DateTime $deliveryDate)
+    public function setDeliveryDate(\DateTimeInterface $deliveryDate)
     {
         $this->deliveryDate = $deliveryDate;
 
