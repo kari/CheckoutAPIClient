@@ -15,12 +15,11 @@ $response->setRequestParams($_GET);
 $status_string = '';
 
 try {
-    if($response->validate()) {
+    if ($response->validate()) {
         // we have a valid response, now check the status
 
         // the status codes are listed in the api documentation of Checkout Finland
-        switch($response->getStatus())
-        {
+        switch ($response->getStatus()) {
             case '2':
             case '5':
             case '6':
@@ -33,7 +32,7 @@ try {
             case '7':
             case '3':
             case '4':
-                // Payment delayed or it is not known yet if the payment was completed 
+                // Payment delayed or it is not known yet if the payment was completed
                  $status_string = 'DELAYED';
                 break;
             case '-1':
@@ -43,17 +42,16 @@ try {
             case '-3':
             case '-4':
             case '-10':
-                // Cancelled by banks, Checkout Finland, time out e.g. 
+                // Cancelled by banks, Checkout Finland, time out e.g.
                  $status_string = 'CANCELLED';
                 break;
         }
-
     } else {
         // something went wrong with the validation, perhaps the user changed the return parameters
     }
-} catch(MacMismatchException $ex) {
+} catch (MacMismatchException $ex) {
     echo 'Mac mismatch';
-} catch(UnsupportedAlgorithmException $ex) {
+} catch (UnsupportedAlgorithmException $ex) {
     echo 'Unsupported algorithm';
 }
 ?>

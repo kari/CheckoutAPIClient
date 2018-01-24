@@ -24,7 +24,7 @@ $response = $client->poll($poll);
 
 $response_xml = @simplexml_load_string($response);
 
-if($response_xml) {
+if ($response_xml) {
     // the status codes are listed in the api documentation of Checkout Finland
     switch ($response_xml->status) {
         case '2':

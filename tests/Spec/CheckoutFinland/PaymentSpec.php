@@ -17,17 +17,17 @@ class PaymentSpec extends ObjectBehavior
      */
     private $demo_merchant_secret   = "SAIPPUAKAUPPIAS";
 
-    function it_is_initializable()
+    public function it_is_initializable()
     {
         $this->shouldHaveType('CheckoutFinland\Payment');
     }
 
-    function let()
+    public function let()
     {
         $this->beConstructedWith($this->demo_merchant_id, $this->demo_merchant_secret);
     }
 
-    function it_stores_order_data()
+    public function it_stores_order_data()
     {
         date_default_timezone_set('Europe/Helsinki');
 
@@ -40,9 +40,8 @@ class PaymentSpec extends ObjectBehavior
         $this->setOrderData($stamp, $amount, $reference, $message, $delivery_date);
     }
 
-    function it_stores_customer_data()
+    public function it_stores_customer_data()
     {
-
         $first_name     = 'John';
         $family_name    = 'Doe';
         $address        = 'Some Street 13 B 2';
@@ -54,7 +53,7 @@ class PaymentSpec extends ObjectBehavior
         $this->setCustomerData($first_name, $family_name, $address, $postcode, $post_office, $country, $language);
     }
 
-    function it_can_store_all_data_from_single_array()
+    public function it_can_store_all_data_from_single_array()
     {
         $payment_data = [
             'stamp'             => '1245132',
@@ -68,7 +67,9 @@ class PaymentSpec extends ObjectBehavior
             'postcode'          => '33100',
             'postOffice'        => 'Some city',
             'country'           => 'FIN',
-            'language'          => 'EN'
+            'language'          => 'EN',
+            'phonenumber'       => '04512345678',
+            'email'             => 'test@example.org'
         ];
 
         $this->setData($payment_data);
@@ -77,17 +78,17 @@ class PaymentSpec extends ObjectBehavior
         $this->getPostOffice()->shouldBe('Some city');
     }
 
-    function it_throws_exception_when_amount_is_too_large()
+    public function it_throws_exception_when_amount_is_too_large()
     {
         $this->shouldThrow('CheckoutFinland\Exceptions\AmountTooLargeException')->duringSetAmount("100000000");
     }
 
-    function it_throws_exception_when_amount_is_too_small()
+    public function it_throws_exception_when_amount_is_too_small()
     {
         $this->shouldThrow('CheckoutFinland\Exceptions\AmountUnderMinimumException')->duringSetAmount("10");
     }
 
-    function it_throws_exceptions_when_urls_are_too_long()
+    public function it_throws_exceptions_when_urls_are_too_long()
     {
         $long_url = str_pad("http://f", 301, "o");
 
@@ -97,7 +98,7 @@ class PaymentSpec extends ObjectBehavior
         $this->shouldThrow('CheckoutFinland\Exceptions\UrlTooLongException')->duringSetRejectUrl($long_url);
     }
 
-    function it_can_set_all_return_urls_at_once()
+    public function it_can_set_all_return_urls_at_once()
     {
         $url = 'www.return.url';
         $this->setUrls($url);
@@ -108,7 +109,7 @@ class PaymentSpec extends ObjectBehavior
         $this->getRejectUrl()->shouldBe($url);
     }
 
-    function it_throws_exceptions_when_trying_to_set_too_long_variables_to_critical_fields()
+    public function it_throws_exceptions_when_trying_to_set_too_long_variables_to_critical_fields()
     {
         $long_string = str_pad('foo', 21, 'o');
 
@@ -117,7 +118,7 @@ class PaymentSpec extends ObjectBehavior
         $this->shouldThrow('CheckoutFinland\Exceptions\VariableTooLongException')->duringSetStamp($long_string);
     }
 
-    function it_truncates_strings_that_are_too_long_when_they_are_not_critical()
+    public function it_truncates_strings_that_are_too_long_when_they_are_not_critical()
     {
         $long_name = str_pad("Jeffrey", 45, "y");
         $long_name_truncated = str_pad("Jeffrey", 40, "y");
@@ -129,7 +130,7 @@ class PaymentSpec extends ObjectBehavior
         $this->getFamilyName()->shouldBe($long_name_truncated);
     }
 
-    function it_calculates_a_mac_from_variables()
+    public function it_calculates_a_mac_from_variables()
     {
         $payment_data = [
             'version'           => '0001',
@@ -154,41 +155,40 @@ class PaymentSpec extends ObjectBehavior
             'familyName'        => 'Doe',
             'address'           => 'Some street 13 B 2',
             'postcode'          => '33100',
-            'postOffice'        => 'Some city',
-            
+            'postOffice'        => 'Some city'
         ];
 
-        $mac_string = '';
-        
-        foreach ($payment_data as $value) {
-            $mac_string .= "$value+";
-        }
 
-        $mac_string .= $this->demo_merchant_secret;
+        $hashString = join(
+            '+',
+            array_values($payment_data)
+        );
 
-        $expected_mac = strtoupper(md5($mac_string));
+        $expected_mac = strtoupper(hash_hmac('sha256', $hashString, $this->demo_merchant_secret));
+
 
         $this->setUrls('www.someurl.com');
 
         $this->setOrderData(
-            $payment_data['stamp'], 
-            $payment_data['amount'], 
-            $payment_data['reference'], 
-            $payment_data['message'], 
+            $payment_data['stamp'],
+            $payment_data['amount'],
+            $payment_data['reference'],
+            $payment_data['message'],
             new \DateTime('2014-10-05')
         );
 
         $this->setCustomerData(
-            $payment_data['firstName'], 
-            $payment_data['familyName'], 
-            $payment_data['address'], 
-            $payment_data['postcode'], 
-            $payment_data['postOffice'], 
-            $payment_data['country'], 
-            $payment_data['language']
+            $payment_data['firstName'],
+            $payment_data['familyName'],
+            $payment_data['address'],
+            $payment_data['postcode'],
+            $payment_data['postOffice'],
+            $payment_data['country'],
+            $payment_data['language'],
+            'test@example.org',
+            '045123456789'
         );
 
         $this->calculateMac()->shouldBe($expected_mac);
     }
-
 }

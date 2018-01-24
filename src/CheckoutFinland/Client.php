@@ -43,6 +43,8 @@ class Client
             'ADDRESS'       => ''. $payment->getAddress(),
             'POSTCODE'      => ''. $payment->getPostcode(),
             'POSTOFFICE'    => ''. $payment->getPostOffice(),
+            'EMAIL'         => ''. $payment->getEmail(),
+            'PHONE'         => ''. $payment->getPhonenumber(),
             'MAC'           => ''. $payment->calculateMac()
         ];
 
@@ -70,7 +72,6 @@ class Client
         ];
 
         return $this->postData('https://rpcapi.checkout.fi/poll2', $postData);
-
     }
 
 
@@ -85,8 +86,7 @@ class Client
      */
     private function postData($url, $postData)
     {
-        if(ini_get('allow_url_fopen'))
-        {
+        if (ini_get('allow_url_fopen')) {
             $context = stream_context_create(array(
                 'http' => array(
                     'method' => 'POST',
@@ -94,11 +94,9 @@ class Client
                     'content' => http_build_query($postData)
                 )
             ));
-            
+
             return file_get_contents($url, false, $context);
-        } 
-        elseif(in_array('curl', get_loaded_extensions()) ) 
-        {
+        } elseif (in_array('curl', get_loaded_extensions())) {
             $options = array(
                 CURLOPT_POST            => 1,
                 CURLOPT_HEADER          => 0,
@@ -109,16 +107,14 @@ class Client
                 CURLOPT_TIMEOUT         => 4,
                 CURLOPT_POSTFIELDS      => http_build_query($postData)
             );
-        
+
             $ch = curl_init();
             curl_setopt_array($ch, $options);
             $result = curl_exec($ch);
             curl_close($ch);
 
             return $result;
-        }
-        else 
-        {
+        } else {
             throw new \Exception("No valid method to post data. Set allow_url_fopen setting to On in php.ini file or install curl extension.");
         }
     }

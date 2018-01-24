@@ -1,0 +1,19 @@
+FROM php:5.6-apache
+
+ENV TZ Europe/Helsinki
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git zip && \
+    curl --silent --show-error https://getcomposer.org/installer | \
+    php -- --install-dir=/usr/local/bin --filename=composer && \
+    cp /usr/share/zoneinfo/Europe/Helsinki /etc/localtime && \
+    echo "date.timezone = Europe/Helsinki" > /usr/local/etc/php/conf.d/timezone.ini
+
+
+COPY . /var/www/html/
+
+WORKDIR /var/www/html/
+
+RUN curl --silent --show-error https://getcomposer.org/installer | php && \
+    composer install --prefer-source --no-interaction
+

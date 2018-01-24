@@ -25,6 +25,8 @@ $payment_data = [
     'address'       => $_POST['address'],
     'postOffice'    => $_POST['post-office'],
     'postcode'      => $_POST['zip-code'],
+    'phonenumber'   => '04513371337',
+    'email'         => 'test@example.org',
     'country'       => 'FIN',                       // country affects what payment options are shown FIN = all, others = credit cards
     'language'      => 'EN'
 ];
@@ -35,26 +37,22 @@ $client = new Client();
 
 $response = $client->sendPayment($payment);
 
-if($response)
-{
+if ($response) {
     $xml = @simplexml_load_string($response); // use @ to suppress warnings, checkout finland responds with an error string instead of xml if something went wrong
 
-    if($xml and isset($xml->id)) {
+    if ($xml and isset($xml->id)) {
         // now we have a proper response xml and can show payment options to customer
 
         // here you can pass the xml to your view for rendering or something else
         // we just render the payment options a bit further down this file
-
-             
-    } else  { 
+    } else {
         // something went wrong, check merchant id and secret and after that every other parameter
         // do some error handling
         var_dump($response);
     }
-} 
-else {
+} else {
     // no response at all, maybe the server is down, do some error handling
-} 
+}
 ?>
 <!doctype html>
 
@@ -121,18 +119,14 @@ else {
     <div style="clear:both; display:block; max-width:800px; margin:auto;">
         <h2>Payment options:</h2>
 
-        <?php 
-        if($xml and isset($xml->id))
-        {
+        <?php
+        if ($xml and isset($xml->id)) {
             $html = '<div class="block" style="padding: 10px; background-color: white;">';
 
-            foreach($xml->payments->payment->banks as $bankX) 
-            {
-                foreach($bankX as $bank) 
-                {
+            foreach ($xml->payments->payment->banks as $bankX) {
+                foreach ($bankX as $bank) {
                     $html .= "<div class='C1' style='float: left; margin-right: 20px; min-height: 100px;' text-align: center;><form action='{$bank['url']}' method='post'><p>\n";
-                    foreach($bank as $key => $value) 
-                    {
+                    foreach ($bank as $key => $value) {
                         $html .= "<input type='hidden' name='$key' value='$value' />\n";
                     }
                     $html .= "<span><input type='image' src='{$bank['icon']}' /></span><div><p>{$bank['name']}</p></div></form></div>\n";
@@ -144,9 +138,9 @@ else {
     </div>
 
     <div style="clear:both; margin-top:15px; display:block;">
-        <p>The payment options listed here are in test mode, some options are missing (like credit cards) 
-            that will be shown on this list when you use production credentials. For testing purposes the easiest 
-            payment method is Nordea: login credentials are prefilled with demo credentials and you can use whatever 
+        <p>The payment options listed here are in test mode, some options are missing (like credit cards)
+            that will be shown on this list when you use production credentials. For testing purposes the easiest
+            payment method is Nordea: login credentials are prefilled with demo credentials and you can use whatever
             string you wish as the authorization code (Vahvistustunnus in finnish)</p>
 
         <p>If you can't show the payment buttons on your page you can also redirect the customer to payment

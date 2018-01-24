@@ -1,6 +1,7 @@
 <?php
 
 namespace CheckoutFinland;
+
 use CheckoutFinland\Exceptions\AmountTooLargeException;
 use CheckoutFinland\Exceptions\AmountUnderMinimumException;
 use CheckoutFinland\Exceptions\CurrencyNotSupportedException;
@@ -91,7 +92,7 @@ class Payment
     protected $algorithm;
 
     /**
-     * @var \DateTime Expected delivery date (N 8) (Ymd)
+     * @var string Expected delivery date (N 8) (Ymd)
      */
     protected $deliveryDate;
     /**
@@ -119,6 +120,47 @@ class Payment
      * @var bool If true overrides the minimum allowed amount check (by default 1€ is smallest allowed amount). Do not set to true unless you have a contract with Checkout Finland that allows smaller purchases then 1€.
      */
     private $allowSmallPurchases;
+
+    /**
+     * @var string Email of customer (AN 200)
+     */
+    private $email;
+
+    /**
+     * @var string Phone number of customer (AN 200)
+     */
+    private $phonenumber;
+
+    /**
+     * @var string Fields used in mac calculation
+     * @static
+     * @access private
+     */
+    private static $MAC_FIELDS = [
+        'version',
+        'stamp',
+        'amount',
+        'reference',
+        'message',
+        'language',
+        'merchantId',
+        'returnUrl',
+        'cancelUrl',
+        'rejectUrl',
+        'delayedUrl',
+        'country',
+        'currency',
+        'device',
+        'content',
+        'type',
+        'algorithm',
+        'deliveryDate',
+        'firstName',
+        'familyName',
+        'address',
+        'postcode',
+        'postOffice'
+    ];
 
     /**
      * @param $merchantId
@@ -183,7 +225,7 @@ class Payment
      * @param $language
      * @return $this
      */
-    public function setCustomerData($firstName, $familyName, $address, $postcode, $postOffice, $country, $language)
+    public function setCustomerData($firstName, $familyName, $address, $postcode, $postOffice, $country, $language, $email = '', $phonenumber = '')
     {
         $this->setFirstName($firstName);
         $this->setFamilyName($familyName);
@@ -192,6 +234,8 @@ class Payment
         $this->setPostOffice($postOffice);
         $this->setCountry($country);
         $this->setLanguage($language);
+        $this->setEmail($email);
+        $this->setPhonenumber($phonenumber);
 
         return $this;
     }
@@ -219,11 +263,10 @@ class Payment
      */
     public function setData(array $params)
     {
-        foreach($params as $key => $value)
-        {
+        foreach ($params as $key => $value) {
             $setter_name = "set".ucfirst($key);
-            
-            if(method_exists($this, $setter_name)) {
+
+            if (method_exists($this, $setter_name)) {
                 $this->$setter_name($value);
             }
         }
@@ -243,7 +286,7 @@ class Payment
         $this->setReturnUrl($returnUrl);
         $this->setCancelUrl($returnUrl);
         $this->setDelayedUrl($returnUrl);
-        $this->setRejectUrl($returnUrl);   
+        $this->setRejectUrl($returnUrl);
 
         return $this;
     }
@@ -255,33 +298,14 @@ class Payment
     */
     public function calculateMac()
     {
-        $mac_string = $this->getVersion();
-        
-        $mac_string .= '+' .$this->getStamp();
-        $mac_string .= '+' .$this->getAmount();
-        $mac_string .= '+' .$this->getReference();
-        $mac_string .= '+' .$this->getMessage();
-        $mac_string .= '+' .$this->getLanguage();
-        $mac_string .= '+' .$this->getMerchantId();
-        $mac_string .= '+' .$this->getReturnUrl();
-        $mac_string .= '+' .$this->getCancelUrl();
-        $mac_string .= '+' .$this->getRejectUrl();
-        $mac_string .= '+' .$this->getDelayedUrl();
-        $mac_string .= '+' .$this->getCountry();
-        $mac_string .= '+' .$this->getCurrency();
-        $mac_string .= '+' .$this->getDevice();
-        $mac_string .= '+' .$this->getContent();
-        $mac_string .= '+' .$this->getType();
-        $mac_string .= '+' .$this->getAlgorithm();
-        $mac_string .= '+' .$this->getDeliveryDate()->format('Ymd');
-        $mac_string .= '+' .$this->getFirstName();
-        $mac_string .= '+' .$this->getFamilyName();
-        $mac_string .= '+' .$this->getAddress();
-        $mac_string .= '+' .$this->getPostcode();
-        $mac_string .= '+' .$this->getPostOffice();
-        $mac_string .= '+' .$this->getMerchantSecret();
-
-        return strtoupper(md5($mac_string));
+        $obj = $this;
+        $mac_string = implode(
+            '+',
+            array_map(function ($e) use ($obj) {
+                return $obj->$e;
+            }, self::$MAC_FIELDS)
+        );
+        return strtoupper(hash_hmac('sha256', $mac_string, $this->getMerchantSecret()));
     }
 
     /**
@@ -298,7 +322,6 @@ class Payment
      */
     public function setAddress($address)
     {
-
         $this->address = substr($address, 0, 40);
 
         return $this;
@@ -318,7 +341,7 @@ class Payment
      */
     public function setAlgorithm($algorithm)
     {
-        $this->algorithm = substr($algorithm, 0 , 1);
+        $this->algorithm = substr($algorithm, 0, 1);
 
         return $this;
     }
@@ -339,11 +362,13 @@ class Payment
      */
     public function setAmount($amount)
     {
-        if(strlen($amount) > 8 )
+        if (strlen($amount) > 8) {
             throw new AmountTooLargeException($amount ." is too large.");
+        }
 
-        if($this->allowSmallPurchases == false and $amount < 100)
+        if ($this->allowSmallPurchases == false and $amount < 100) {
             throw new AmountUnderMinimumException("1€ is the minimum allowed amount.");
+        }
 
         $this->amount = $amount;
 
@@ -365,9 +390,9 @@ class Payment
      */
     public function setCancelUrl($cancelUrl)
     {
-
-        if(strlen($cancelUrl) > 300)
+        if (strlen($cancelUrl) > 300) {
             throw new UrlTooLongException('Max url length is 300 characters');
+        }
 
         $this->cancelUrl = $cancelUrl;
 
@@ -427,8 +452,9 @@ class Payment
      */
     public function setCurrency($currency)
     {
-        if($currency != 'EUR')
+        if ($currency != 'EUR') {
             throw new CurrencyNotSupportedException('EUR is currently the only supported currency');
+        }
 
         $this->currency = $currency;
 
@@ -450,8 +476,9 @@ class Payment
      */
     public function setDelayedUrl($delayedUrl)
     {
-        if(strlen($delayedUrl) > 300)
+        if (strlen($delayedUrl) > 300) {
             throw new UrlTooLongException('Max url length is 300 characters');
+        }
 
         $this->delayedUrl = $delayedUrl;
 
@@ -459,16 +486,11 @@ class Payment
     }
 
     /**
-     * @param $format
-     * @return mixed
+     * @return string
      */
-    public function getDeliveryDate($format = null)
+    public function getDeliveryDate()
     {
-        if($format)
-            return $this->deliveryDate->format($format);
-        else
-            return $this->deliveryDate;
-
+        return $this->deliveryDate;
     }
 
     /**
@@ -477,7 +499,7 @@ class Payment
      */
     public function setDeliveryDate(\DateTime $deliveryDate)
     {
-        $this->deliveryDate = $deliveryDate;
+        $this->deliveryDate = $deliveryDate->format('Ymd');
 
         return $this;
     }
@@ -573,8 +595,9 @@ class Payment
      */
     public function setMerchantId($merchantId)
     {
-        if(strlen($merchantId) > 20 )
+        if (strlen($merchantId) > 20) {
             throw new VariableTooLongException("Merchant id: $merchantId too long, max length is 20 characters");
+        }
 
         $this->merchantId = $merchantId;
 
@@ -672,8 +695,9 @@ class Payment
      */
     public function setReference($reference)
     {
-        if(strlen($reference) > 20)
+        if (strlen($reference) > 20) {
             throw new VariableTooLongException("Reference: $reference too long, max length is 20 characters.");
+        }
 
         $this->reference = $reference;
 
@@ -695,8 +719,9 @@ class Payment
      */
     public function setRejectUrl($rejectUrl)
     {
-        if(strlen($rejectUrl) > 300)
+        if (strlen($rejectUrl) > 300) {
             throw new UrlTooLongException('Max url length is 300 characters');
+        }
 
         $this->rejectUrl = $rejectUrl;
 
@@ -718,8 +743,9 @@ class Payment
      */
     public function setReturnUrl($returnUrl)
     {
-        if(strlen($returnUrl) > 300)
+        if (strlen($returnUrl) > 300) {
             throw new UrlTooLongException('Max url length is 300 characters');
+        }
 
         $this->returnUrl = $returnUrl;
 
@@ -741,8 +767,9 @@ class Payment
      */
     public function setStamp($stamp)
     {
-        if(strlen($stamp) > 20)
+        if (strlen($stamp) > 20) {
             throw new VariableTooLongException("Stamp: $stamp too long, max length is 20 characters.");
+        }
 
         $this->stamp = $stamp;
 
@@ -785,5 +812,39 @@ class Payment
         $this->version = substr($version, 0, 4);
 
         return $this;
+    }
+
+    /**
+     * @param string $email
+     * @return $this
+     */
+    public function setEmail($email)
+    {
+        $this->email = substr($email, 0, 200);
+    }
+
+    /**
+     * @param string $phonenumber
+     * @return $this
+     */
+    public function setPhonenumber($phonenumber)
+    {
+        $this->phonenumber = $phonenumber;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPhonenumber()
+    {
+        return $this->phonenumber;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEmail()
+    {
+        return $this->email;
     }
 }
