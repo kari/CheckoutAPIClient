@@ -5,7 +5,7 @@ namespace CheckoutFinland;
 class Poll
 {
 
-	/**
+    /**
      * @var string Payment version, currently always '0001' (AN 4)
      */
     protected $version;
@@ -42,20 +42,20 @@ class Poll
      */
     protected $algorithm;
 
-	/**
-	 *	@param $merchantId
-	 *	@param $merchantSecret
-	 *
-	 */
+    /**
+     *	@param $merchantId
+     *	@param $merchantSecret
+     *
+     */
     public function __construct($merchantId, $merchantSecret)
     {
-    	$this->merchantId = $merchantId;
-    	$this->merchantSecret = $merchantSecret;
+        $this->merchantId = $merchantId;
+        $this->merchantSecret = $merchantSecret;
 
-    	$this->setDefaultValues();
+        $this->setDefaultValues();
     }
 
-	/**
+    /**
      * @return $this
      */
     private function setDefaultValues()
@@ -69,7 +69,7 @@ class Poll
     }
 
     /**
- 	 * Set the Payment info
+     * Set the Payment info
      *
      * @param $stamp
      * @param $reference
@@ -248,8 +248,4 @@ class Poll
     {
         $this->algorithm = $algorithm;
     }
-
-
-
-
 }
